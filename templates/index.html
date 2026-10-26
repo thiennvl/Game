@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Tactical Battle Arena RPG & Meta Tracker - Game chiến đấu theo lượt có chiều sâu kết hợp hệ thống trang bị, gacha và phân tích dữ liệu SQLite">
+    <title>Tactical Battle Arena RPG &amp; Meta Tracker</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- TOP APP HEADER -->
+        <header class="app-header">
+            <div class="header-container">
+                <div class="brand">
+                    <span class="brand-icon">⚔️</span>
+                    <div class="brand-text">
+                        <h1 class="brand-title">TACTICAL BATTLE ARENA</h1>
+                        <span class="brand-subtitle">RPG &amp; META TRACKER</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs (8 Tabs) -->
+                <nav class="nav-tabs" id="nav-tabs" role="tablist">
+                    <button class="nav-tab active" data-target="tab-arena" role="tab">
+                        <span class="tab-icon">🏟️</span> <span>Đấu Trường</span>
+                    </button>
+                    <button class="nav-tab" data-target="tab-heroes" role="tab">
+                        <span class="tab-icon">👥</span> <span>Tướng</span>
+                    </button>
+                    <button class="nav-tab" data-target="tab-equipment" role="tab">
+                        <span class="tab-icon">🎒</span> <span>Trang Bị</span>
+                    </button>
+                    <button class="nav-tab" data-target="tab-shop" role="tab">
+                        <span class="tab-icon">🛒</span> <span>Cửa Hàng</span>
+                    </button>
+                    <button class="nav-tab" data-target="tab-wheel" role="tab">
+                        <span class="tab-icon">🎡</span> <span>Vòng Quay</span>
+                    </button>
+                    <button class="nav-tab" data-target="tab-meta" role="tab">
+                        <span class="tab-icon">📊</span> <span>Meta Tracker</span>
+                    </button>
+                    <button class="nav-tab" data-target="tab-history" role="tab">
+                        <span class="tab-icon">📜</span> <span>Lịch Sử</span>
+                    </button>
+                    <button class="nav-tab" data-target="tab-profile" role="tab">
+                        <span class="tab-icon">👤</span> <span>Hồ Sơ</span>
+                    </button>
+                </nav>
+
+                <!-- Top Right Player Currency Bar -->
+                <div class="header-currency-bar">
+                    <div class="currency-pill gold-pill" id="pill-gold" title="Vàng dùng để mua sắm và cường hóa">
+                        <span class="cur-icon">🪙</span>
+                        <span class="cur-val" id="header-gold-val">800</span>
+                        <span class="cur-label">Gold</span>
+                    </div>
+                    <div class="currency-pill ticket-pill" id="pill-tickets" title="Vé quay Vòng Quay May Mắn">
+                        <span class="cur-icon">🎟️</span>
+                        <span class="cur-val" id="header-ticket-val">3</span>
+                    </div>
+                    <div class="live-pill" title="Hệ thống cơ sở dữ liệu SQLite hoạt động thời gian thực">
+                        <span class="pulse-dot"></span> SQLite Active
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTAINER -->
+        <main class="main-container">
+
+            <!-- ==============================================================
+                 TAB 1: ARENA (ĐẤU TRƯỜNG 3V3 - TACTICAL & AUTO)
+                 ============================================================== -->
+            <section class="tab-content active" id="tab-arena" role="tabpanel">
+                <!-- Arena Control Bar -->
+                <div class="arena-top-bar">
+                    <div class="bar-left">
+                        <div class="mode-toggle-group">
+                            <button class="btn-mode active" id="btn-mode-tactical" data-mode="TACTICAL">
+                                🎯 Tactical Mode (Thủ Công)
+                            </button>
+                            <button class="btn-mode" id="btn-mode-auto" data-mode="AUTO">
+                                🤖 Auto Mode (Tự Động)
+                            </button>
+                        </div>
+                        <button class="btn btn-primary" id="btn-roll-team" title="Roll ngẫu nhiên 3 tướng">
+                            <span class="btn-icon">🎲</span> Roll Đội Hình
+                        </button>
+                        <button class="btn btn-danger btn-fight" id="btn-start-battle">
+                            <span class="btn-icon">⚔️</span> BẮT ĐẦU CHIẾN ĐẤU
+                        </button>
+                    </div>
+
+                    <div class="bar-right">
+                        <!-- Auto Mode Playback Controls -->
+                        <div class="playback-controls" id="auto-playback-controls" style="display: none;">
+                            <span class="playback-label">Auto Playback:</span>
+                            <button class="btn btn-secondary btn-sm" id="btn-step-battle" title="Xem bước tiếp theo">⏭️ Bước kế</button>
+                            <button class="btn btn-secondary btn-sm" id="btn-auto-play" title="Tự động phát">▶️ Tự động</button>
+                            <button class="btn btn-outline btn-sm" id="btn-speed-toggle" title="Tốc độ">⚡ 1x</button>
+                            <button class="btn btn-outline btn-sm" id="btn-skip-battle" title="Bỏ qua">⏩ Xem kết quả</button>
+                        </div>
+
+                        <!-- Element Advantage Quick Guide -->
+                        <div class="element-guide-badge" title="Tương khắc nguyên tố: Lửa khắc Tự Nhiên, Tự Nhiên khắc Nước, Nước khắc Lửa (x1.5 Dmg)">
+                            <span>🔥 &gt; 🌿 &gt; 💧 &gt; 🔥 (x1.5)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Turn Order Queue Bar -->
+                <div class="turn-order-queue-bar" id="turn-order-queue" style="display: none;">
+                    <span class="queue-title">Thứ tự lượt (Speed):</span>
+                    <div class="queue-items" id="queue-items-container"></div>
+                </div>
+
+                <!-- 2D Battlefield Grid -->
+                <div class="tactical-battlefield">
+                    <!-- BLUE TEAM (LEFT) -->
+                    <div class="team-side-box team-blue" id="team-blue-box">
+                        <div class="side-header">
+                            <div class="side-tag">
+                                <span class="tag-dot blue-dot"></span>
+                                <h2>ĐỘI BLUE (BẠN)</h2>
+                            </div>
+                            <span class="team-hp-display" id="blue-team-hp">Tổng HP: ---</span>
+                        </div>
+                        <div class="battle-roster" id="blue-roster-container">
+                            <div class="empty-roster-placeholder">
+                                <div class="placeholder-icon">🎲</div>
+                                <p>Bấm <strong>"Roll Đội Hình"</strong> để triệu hồi 3 vị tướng xuất trận!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CENTER VS & ROUND BADGE -->
+                    <div class="battlefield-center">
+                        <div class="vs-emblem">VS</div>
+                        <div class="round-counter-pill" id="arena-round-counter">Chờ trận</div>
+                    </div>
+
+                    <!-- RED TEAM (RIGHT) -->
+                    <div class="team-side-box team-red" id="team-red-box">
+                        <div class="side-header">
+                            <div class="side-tag">
+                                <span class="tag-dot red-dot"></span>
+                                <h2>ĐỐI THỦ RED (AI)</h2>
+                            </div>
+                            <span class="team-hp-display" id="red-team-hp">Tổng HP: ---</span>
+                        </div>
+                        <div class="battle-roster" id="red-roster-container">
+                            <div class="empty-roster-placeholder">
+                                <div class="placeholder-icon">🤖</div>
+                                <p>Đối thủ sẽ xuất hiện khi bạn bấm <strong>"Bắt Đầu Chiến Đấu"</strong>!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TACTICAL COMMAND CENTER (Appears during Player's turn in Tactical Mode) -->
+                <div class="tactical-command-card" id="tactical-command-panel" style="display: none;">
+                    <div class="command-header">
+                        <div class="actor-info-pill" id="command-actor-info">
+                            <span class="actor-icon" id="cmd-actor-emoji">🛡️</span>
+                            <div>
+                                <h3 id="cmd-actor-name">Knight</h3>
+                                <span class="cmd-actor-role" id="cmd-actor-role">Hiệp sĩ • Đang đến lượt bạn!</span>
+                            </div>
+                        </div>
+                        <div class="command-instruction" id="cmd-instruction">
+                            👉 Hãy chọn 1 chiêu thức bên dưới, sau đó nhấp vào mục tiêu trên chiến trường!
+                        </div>
+                    </div>
+
+                    <div class="command-body">
+                        <!-- Ability Buttons (4 Skills) -->
+                        <div class="abilities-selection-grid" id="cmd-abilities-grid"></div>
+
+                        <!-- Target & Confirm Bar -->
+                        <div class="target-confirm-bar">
+                            <div class="target-selected-display" id="cmd-target-display">
+                                <span class="tgt-label">Mục tiêu:</span>
+                                <strong id="cmd-target-name">Chưa chọn mục tiêu</strong>
+                            </div>
+                            <div class="confirm-actions">
+                                <button class="btn btn-outline btn-sm" id="btn-cancel-target">Hủy chọn</button>
+                                <button class="btn btn-danger" id="btn-confirm-action" disabled>
+                                    ⚔️ XÁC NHẬN TẤN CÔNG
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BATTLE EVENT LOG FEED -->
+                <div class="battle-log-card">
+                    <div class="log-card-header">
+                        <div class="log-title-wrap">
+                            <span class="log-icon">📜</span>
+                            <h3>Nhật Ký Chiến Đấu (Battle Log)</h3>
+                        </div>
+                        <div class="log-stats" id="log-round-info">Hiệp: 0 | Sự kiện: 0</div>
+                    </div>
+                    <div class="battle-log-feed" id="battle-log-feed">
+                        <div class="log-empty-msg">
+                            Sẵn sàng! Chọn Tactical Mode để tự tay điều khiển, hoặc Auto Mode để tự động chiến đấu!
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==============================================================
+                 TAB 2: HERO MANAGEMENT (QUẢN LÝ TƯỚNG & LEVEL)
+                 ============================================================== -->
+            <section class="tab-content" id="tab-heroes" role="tabpanel" style="display: none;">
+                <div class="section-heading-card">
+                    <div>
+                        <h2>👥 Danh Sách Tướng &amp; Tiến Trình Cấp Độ</h2>
+                        <p class="section-subtitle">Tướng nhận XP sau mỗi trận đấu để tăng cấp, nâng cao chỉ số HP, DEF, ATK và SPEED.</p>
+                    </div>
+                </div>
+                <div class="heroes-management-grid" id="heroes-management-container">
+                    <div class="text-center p-4">Đang tải dữ liệu tướng...</div>
+                </div>
+            </section>
+
+            <!-- ==============================================================
+                 TAB 3: EQUIPMENT / INVENTORY (KHO ĐỒ & CƯỜNG HÓA)
+                 ============================================================== -->
+            <section class="tab-content" id="tab-equipment" role="tabpanel" style="display: none;">
+                <div class="equipment-layout-grid">
+                    <!-- Left: Hero Equipped Items (4 Slots) -->
+                    <div class="equip-hero-column">
+                        <div class="card-inner">
+                            <div class="hero-selector-wrap">
+                                <label for="equip-hero-select">Chọn tướng để quản lý trang bị:</label>
+                                <select class="form-select" id="equip-hero-select"></select>
+                            </div>
+
+                            <div class="hero-equip-preview" id="hero-equip-preview-card">
+                                <div class="preview-avatar-box">
+                                    <span class="preview-emoji" id="preview-hero-emoji">🛡️</span>
+                                    <h3 id="preview-hero-name">Knight</h3>
+                                    <span class="preview-level-badge" id="preview-hero-level">Lv. 1</span>
+                                </div>
+
+                                <!-- 4 Equipment Slots -->
+                                <div class="slots-vertical-list">
+                                    <div class="slot-card" data-slot="WEAPON" id="slot-weapon">
+                                        <div class="slot-icon">🗡️</div>
+                                        <div class="slot-details">
+                                            <span class="slot-name">VŨ KHÍ (WEAPON)</span>
+                                            <strong class="slot-item-title" id="slot-weapon-title">Chưa trang bị</strong>
+                                        </div>
+                                        <button class="btn btn-outline btn-xs btn-slot-action" id="btn-unequip-weapon" style="display: none;">Tháo</button>
+                                    </div>
+                                    <div class="slot-card" data-slot="ARMOR" id="slot-armor">
+                                        <div class="slot-icon">🛡️</div>
+                                        <div class="slot-details">
+                                            <span class="slot-name">GIÁP (ARMOR)</span>
+                                            <strong class="slot-item-title" id="slot-armor-title">Chưa trang bị</strong>
+                                        </div>
+                                        <button class="btn btn-outline btn-xs btn-slot-action" id="btn-unequip-armor" style="display: none;">Tháo</button>
+                                    </div>
+                                    <div class="slot-card" data-slot="BOOTS" id="slot-boots">
+                                        <div class="slot-icon">👢</div>
+                                        <div class="slot-details">
+                                            <span class="slot-name">GIÀY (BOOTS)</span>
+                                            <strong class="slot-item-title" id="slot-boots-title">Chưa trang bị</strong>
+                                        </div>
+                                        <button class="btn btn-outline btn-xs btn-slot-action" id="btn-unequip-boots" style="display: none;">Tháo</button>
+                                    </div>
+                                    <div class="slot-card" data-slot="ACCESSORY" id="slot-accessory">
+                                        <div class="slot-icon">💍</div>
+                                        <div class="slot-details">
+                                            <span class="slot-name">PHỤ KIỆN (ACCESSORY)</span>
+                                            <strong class="slot-item-title" id="slot-accessory-title">Chưa trang bị</strong>
+                                        </div>
+                                        <button class="btn btn-outline btn-xs btn-slot-action" id="btn-unequip-accessory" style="display: none;">Tháo</button>
+                                    </div>
+                                </div>
+
+                                <!-- Effective Battle Stats Display -->
+                                <div class="preview-stats-list" id="preview-stats-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Inventory Items Grid & Enhancement Detail -->
+                    <div class="equip-inventory-column">
+                        <div class="card-inner">
+                            <div class="inventory-filters-bar">
+                                <h3>🎒 Kho Trang Bị Của Bạn</h3>
+                                <div class="filters-group">
+                                    <select class="form-select form-select-sm" id="filter-slot-type">
+                                        <option value="">Tất cả Slot</option>
+                                        <option value="WEAPON">Vũ khí (Weapon)</option>
+                                        <option value="ARMOR">Giáp (Armor)</option>
+                                        <option value="BOOTS">Giày (Boots)</option>
+                                        <option value="ACCESSORY">Phụ kiện (Accessory)</option>
+                                    </select>
+                                    <select class="form-select form-select-sm" id="filter-rarity">
+                                        <option value="">Tất cả Độ Hiếm</option>
+                                        <option value="COMMON">Common (Trắng)</option>
+                                        <option value="RARE">Rare (Lam)</option>
+                                        <option value="EPIC">Epic (Tím)</option>
+                                        <option value="LEGENDARY">Legendary (Cam/Vàng)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Inventory Items Grid -->
+                            <div class="inventory-items-grid" id="inventory-items-grid">
+                                <div class="text-center p-4">Đang tải kho đồ...</div>
+                            </div>
+
+                            <!-- Selected Item Action & Enhancement Card -->
+                            <div class="item-detail-action-card" id="item-detail-card" style="display: none;">
+                                <div class="detail-top-row">
+                                    <div class="detail-item-title-box">
+                                        <span class="detail-item-icon" id="detail-icon">🗡️</span>
+                                        <div>
+                                            <h4 id="detail-name">Iron Longsword</h4>
+                                            <span class="badge-rarity" id="detail-rarity">COMMON</span>
+                                            <span class="detail-slot" id="detail-slot">WEAPON</span>
+                                        </div>
+                                    </div>
+                                    <div class="detail-upgrade-level" id="detail-upgrade-badge">+0</div>
+                                </div>
+
+                                <div class="detail-stats-body" id="detail-stats-body"></div>
+
+                                <div class="detail-actions-row">
+                                    <button class="btn btn-primary" id="btn-equip-selected">
+                                        🗡️ Trang Bị Cho Tướng
+                                    </button>
+                                    <button class="btn btn-secondary" id="btn-upgrade-selected">
+                                        💎 Cường Hóa (+15% chỉ số)
+                                    </button>
+                                </div>
+                                <div class="upgrade-cost-note" id="detail-upgrade-cost-note"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==============================================================
+                 TAB 4: SHOP (CỬA HÀNG TRANG BỊ & NGUYÊN LIỆU)
+                 ============================================================== -->
+            <section class="tab-content" id="tab-shop" role="tabpanel" style="display: none;">
+                <div class="section-heading-card">
+                    <div>
+                        <h2>🛒 Cửa Hàng Trang Bị &amp; Nguyên Liệu</h2>
+                        <p class="section-subtitle">Sử dụng Gold kiếm được từ các trận đấu để mua vũ khí, giáp, giày, phụ kiện và đá nâng cấp.</p>
+                    </div>
+                    <div class="shop-balance-pill">
+                        <span>Số dư của bạn:</span> <strong id="shop-gold-display">800 Gold</strong>
+                    </div>
+                </div>
+
+                <!-- Shop Category Tabs -->
+                <div class="shop-category-nav">
+                    <button class="btn-shop-cat active" data-cat="WEAPON">🗡️ Vũ Khí (Weapons)</button>
+                    <button class="btn-shop-cat" data-cat="ARMOR">🛡️ Giáp (Armor)</button>
+                    <button class="btn-shop-cat" data-cat="BOOTS">👢 Giày (Boots)</button>
+                    <button class="btn-shop-cat" data-cat="ACCESSORY">💍 Phụ Kiện (Accessories)</button>
+                    <button class="btn-shop-cat" data-cat="MATERIAL">💎 Nguyên Liệu (Materials)</button>
+                </div>
+
+                <!-- Shop Items Grid -->
+                <div class="shop-items-grid" id="shop-items-grid">
+                    <div class="text-center p-4">Đang tải cửa hàng...</div>
+                </div>
+            </section>
+
+            <!-- ==============================================================
+                 TAB 5: LUCKY WHEEL (VÒNG QUAY MAY MẮN)
+                 ============================================================== -->
+            <section class="tab-content" id="tab-wheel" role="tabpanel" style="display: none;">
+                <div class="wheel-section-layout">
+                    <!-- Left: Interactive Wheel Canvas -->
+                    <div class="wheel-canvas-card">
+                        <div class="wheel-stage-container">
+                            <div class="wheel-pointer">▼</div>
+                            <canvas id="wheel-canvas" width="400" height="400"></canvas>
+                        </div>
+                        <div class="wheel-actions-bar">
+                            <button class="btn btn-danger btn-spin" id="btn-spin-gold">
+                                🎡 Quay (150 Gold)
+                            </button>
+                            <button class="btn btn-secondary btn-spin" id="btn-spin-ticket">
+                                🎟️ Dùng Vé Quay (<span id="wheel-tickets-count">3</span>)
+                            </button>
+                        </div>
+                        <div class="pity-progress-bar-wrap">
+                            <div class="pity-header-row">
+                                <span>Tiến trình Bảo hiểm (Pity):</span>
+                                <strong id="pity-text">0 / 10 (Chắc chắn Epic+ sau 10 lượt)</strong>
+                            </div>
+                            <div class="pity-track">
+                                <div class="pity-fill" id="pity-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Published Odds & Spin History -->
+                    <div class="wheel-info-card">
+                        <div class="card-inner">
+                            <h3>📜 Tỷ Lệ Phần Thưởng Công Khai</h3>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Phần Thưởng</th>
+                                            <th>Tỷ Lệ</th>
+                                            <th>Mô Tả</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="wheel-odds-tbody"></tbody>
+                                </table>
+                            </div>
+
+                            <h3 class="mt-4">📋 Lịch Sử Quay Gần Đây</h3>
+                            <div class="wheel-history-feed" id="wheel-history-feed">
+                                <div class="text-center text-muted p-2">Chưa có lượt quay nào</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==============================================================
+                 TAB 6: META TRACKER (ANALYTICS)
+                 ============================================================== -->
+            <section class="tab-content" id="tab-meta" role="tabpanel" style="display: none;">
+                <!-- Overview Stats Grid -->
+                <div class="stats-overview-grid" id="meta-overview-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-label">Tổng Trận Đã Đấu</div>
+                        <div class="stat-card-value text-accent" id="stat-total-matches">0</div>
+                        <div class="stat-card-sub" id="stat-breakdown">Thắng: 0 | Thua: 0 | Hòa: 0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">Tỉ Lệ Thắng (Blue)</div>
+                        <div class="stat-card-value text-success" id="stat-win-rate">0.0%</div>
+                        <div class="stat-card-sub" id="stat-mode-breakdown">Tactical: 0 | Auto: 0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">Tướng Pick Nhiều Nhất</div>
+                        <div class="stat-card-value text-warning" id="stat-most-picked">---</div>
+                        <div class="stat-card-sub" id="stat-most-picked-count">0 lượt tham gia</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">Tướng Win Rate Cao Nhất</div>
+                        <div class="stat-card-value text-info" id="stat-highest-winrate">---</div>
+                        <div class="stat-card-sub" id="stat-highest-winrate-info">0% win rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-label">Kinh Tế (Gold Kiếm / Tiêu)</div>
+                        <div class="stat-card-value text-warning" id="stat-gold-economy">0 / 0</div>
+                        <div class="stat-card-sub" id="stat-spins-count">0 lượt quay Lucky Wheel</div>
+                    </div>
+                </div>
+
+                <!-- Charts Row 1: Hero Win Rate & Avg Damage -->
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <h4>📈 Tỉ Lệ Thắng Từng Tướng (Win Rate %)</h4>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="chart-winrate"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <h4>⚔️ Sát Thương Trung Bình Mỗi Trận (Avg Damage)</h4>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="chart-avg-damage"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row 2: Elements & Compositions -->
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <h4>🔥 Hiệu Năng Theo Hệ Nguyên Tố (Fire / Water / Nature)</h4>
+                        </div>
+                        <div class="chart-wrapper chart-doughnut-wrapper">
+                            <canvas id="chart-elements"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card comp-leaderboard-card">
+                        <div class="chart-card-header">
+                            <h4>🏆 Top Đội Hình Phổ Biến Nhất (3 Tướng)</h4>
+                            <span class="header-note">Chuẩn hóa tên tướng theo bảng chữ cái</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table" id="table-compositions">
+                                <thead>
+                                    <tr>
+                                        <th>Đội Hình</th>
+                                        <th>Số Trận</th>
+                                        <th>Thắng</th>
+                                        <th>Win Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="compositions-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Hero Analytics Table -->
+                <div class="table-card">
+                    <div class="table-card-header">
+                        <h4>📋 Bảng Thống Kê Chi Tiết Tướng</h4>
+                        <span class="header-note">Truy vấn trực tiếp từ SQLite với JOIN &amp; GROUP BY</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="table-heroes-analytics">
+                            <thead>
+                                <tr>
+                                    <th>Tướng</th>
+                                    <th>Hệ</th>
+                                    <th>Vai Trò</th>
+                                    <th>Cấp Độ</th>
+                                    <th>Số Lần Pick</th>
+                                    <th>Số Trận Thắng</th>
+                                    <th>Win Rate</th>
+                                    <th>Tổng Damage</th>
+                                    <th>Avg Damage</th>
+                                    <th>Kills</th>
+                                </tr>
+                            </thead>
+                            <tbody id="heroes-analytics-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==============================================================
+                 TAB 7: MATCH HISTORY (LỊCH SỬ ĐẤU)
+                 ============================================================== -->
+            <section class="tab-content" id="tab-history" role="tabpanel" style="display: none;">
+                <div class="history-card">
+                    <div class="history-header">
+                        <div>
+                            <h3>📜 Lịch Sử Đấu Gần Đây</h3>
+                            <p class="history-subtitle">Dữ liệu được lưu trữ vĩnh viễn trong SQLite (instance/arena.db)</p>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" id="btn-refresh-history">🔄 Làm mới</button>
+                    </div>
+
+                    <div class="history-list" id="history-matches-list">
+                        <div class="history-empty">Chưa có trận đấu nào được lưu lại.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==============================================================
+                 TAB 8: PLAYER PROFILE (HỒ SƠ & SỔ CÁI GIAO DỊCH)
+                 ============================================================== -->
+            <section class="tab-content" id="tab-profile" role="tabpanel" style="display: none;">
+                <div class="profile-layout-grid">
+                    <div class="profile-summary-card">
+                        <div class="profile-avatar-big">🧙‍♂️</div>
+                        <h3 class="profile-name">Nhà Chiến Thuật Cấp Cao</h3>
+                        <div class="profile-level-badge" id="profile-level-badge">Level 1</div>
+
+                        <div class="profile-xp-bar-wrap">
+                            <div class="xp-text-row">
+                                <span>Kinh nghiệm:</span>
+                                <strong id="profile-xp-text">0 / 150 XP</strong>
+                            </div>
+                            <div class="xp-track">
+                                <div class="xp-fill" id="profile-xp-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="profile-assets-grid">
+                            <div class="asset-item">
+                                <span class="asset-icon">🪙</span>
+                                <strong id="prof-gold">800</strong>
+                                <span class="asset-lbl">Gold</span>
+                            </div>
+                            <div class="asset-item">
+                                <span class="asset-icon">💎</span>
+                                <strong id="prof-stones">6</strong>
+                                <span class="asset-lbl">Đá Cường Hóa</span>
+                            </div>
+                            <div class="asset-item">
+                                <span class="asset-icon">🔮</span>
+                                <strong id="prof-crystals">2</strong>
+                                <span class="asset-lbl">Tinh Thể</span>
+                            </div>
+                            <div class="asset-item">
+                                <span class="asset-icon">🎟️</span>
+                                <strong id="prof-tickets">3</strong>
+                                <span class="asset-lbl">Vé Quay</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-transactions-card">
+                        <div class="card-inner">
+                            <h3>📜 Sổ Cái Lịch Sử Giao Dịch Gold (Currency Ledger)</h3>
+                            <p class="section-subtitle">Minh bạch dòng tiền thưởng trận, mua sắm và cường hóa.</p>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Thời Gian</th>
+                                            <th>Lý Do Giao Dịch</th>
+                                            <th>Biến Động</th>
+                                            <th>Số Dư Sau Đó</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transactions-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- MATCH DETAIL REPLAY MODAL -->
+        <div class="modal-overlay" id="match-modal" style="display: none;">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <h3 id="modal-match-title">Chi Tiết Trận Đấu #---</h3>
+                        <span class="modal-badge" id="modal-match-badge">WIN</span>
+                        <span class="modal-mode-badge" id="modal-mode-badge">TACTICAL</span>
+                    </div>
+                    <button class="modal-close-btn" id="btn-close-modal" aria-label="Đóng">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-teams-grid">
+                        <div class="modal-team-box blue-box">
+                            <h4 class="box-team-title">Đội Blue (Snapshot trang bị &amp; cấp độ)</h4>
+                            <div class="modal-heroes-list" id="modal-blue-heroes"></div>
+                        </div>
+                        <div class="modal-team-box red-box">
+                            <h4 class="box-team-title">Đội Red (Snapshot trang bị &amp; cấp độ)</h4>
+                            <div class="modal-heroes-list" id="modal-red-heroes"></div>
+                        </div>
+                    </div>
+
+                    <div class="modal-log-section">
+                        <h4>Toàn Bộ Diễn Biến Trận Đấu</h4>
+                        <div class="modal-log-feed" id="modal-log-feed"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TOAST NOTIFICATION CONTAINER -->
+        <div class="toast-container" id="toast-container"></div>
+    </div>
+
+    <!-- Application Script -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
